@@ -27,7 +27,7 @@ Documentation;
 Sample: 
     To run, save as md2mb.py and run:
 
-    $ python md2mb.py [maildir_path] [mbox_filename]
+    $ python md2mb.py [maildir_path] [mbox_path_and_filename]
 
     [maildir_path] should be the the path to the actual maildir (containing new, 
     cur, tmp, and the subfolders, which are hidden directories with names like 
@@ -41,6 +41,9 @@ import sys
 import os
 import mailbox
 import email
+from email import policy
+
+firstInit = True
 
 def mailFactory(fp):
     '''
@@ -48,15 +51,17 @@ def mailFactory(fp):
     '''
     return email.message_from_binary_file(fp)
 
-def maildir2mailbox(mailboxPath, mboxFilename):
-    '''
-    lockFilePath = os.path.join(mboxFilename+".lock")
-    if os.path.exists(lockFilePath):
+def maildir2mailbox(mailboxPath, mboxPathAndFilename):
+    global firstInit
+
+    # Remove lock file if an error occurs
+    if firstInit == True:
+        lockFilePath = os.path.join(mboxPathAndFilename+".lock")
+        if os.path.exists(lockFilePath):
             os.remove(lockFilePath)
-            print(f"Lock file {lockFilePath} removed due to an error: {e}")
-        else:
-            print(f"Error occurred, but lock file {lockFilePath} was not found: {e}")
-    '''
+            os.remove(mboxPathAndFilename)
+            print(f"Lock file has been removed now I will try again...")
+            firstInit = False
 
     for essential_dir in ['new', 'cur', 'tmp']:
         if not os.path.exists(os.path.join(mailboxPath, essential_dir)):
@@ -64,20 +69,43 @@ def maildir2mailbox(mailboxPath, mboxFilename):
             return  # O considera continuar con el siguiente directorio esencial
 
     
-    maildir = mailbox.Maildir(dirname=mailboxPath, factory=mailFactory)
-    mbox = mailbox.mbox(mboxFilename)
+    maildir = mailbox.Maildir(
+        dirname=mailboxPath, 
+        factory=mailFactory
+    )
+    mbox = mailbox.mbox(mboxPathAndFilename)
 
     # lock the mbox
     # comment out mbox.lock() if u run this script on a local machine
     mbox.lock()
 
     # iterate over messages in the maildir and add to the mbox
-    for msg in maildir:
-        mbox.add(msg)
-
     try:
         for msg in maildir:
-            mbox.add(msg)
+            try:
+                msg_as_string = msg.as_string(policy=policy.SMTPUTF8)
+                mbox.add(msg_as_string)
+            
+            except UnicodeEncodeError:
+                msg_as_bytes = msg.as_bytes(policy=policy.SMTPUTF8)
+                mbox.add(msg_as_bytes)  
+                print("UnicodeEncodeError: Message added as bytes. ")
+                print(msg)
+                print("------- skip email")
+                continue
+            
+            except ValueError as e:
+                print("ValueError: ", e)
+                print("------- skip email")
+
+                if "String input must be ASCII-only" in str(e):
+                    msg_as_bytes = msg.as_bytes(policy=policy.SMTPUTF8)
+                    mbox.add(msg_as_bytes)  # Corregido para añadir msg_as_bytes en lugar de msg_as_string
+                else: 
+                    print(f"Error message: {e}")
+                    print("------- skip email")
+                    continue
+            
     except FileNotFoundError as e:
         print(f"Error message: {e}")
     finally:

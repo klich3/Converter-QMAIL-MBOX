@@ -4,6 +4,8 @@ Convert Dovecot Mail / QMail mail box to APPLE MBOX format so you can import and
 
 # Install
 
+Python version: ***3.12.3***
+
 It is recommended to create a virtual environment
 
 `virtualenv ./venv && . ./venv/bin/activate`
@@ -16,9 +18,32 @@ after that install dependencies with this command `pip install -r requirements.t
 
 # Usage
 
-In current folder run `python md2mb.py [maildir_path] [mbox_filename]`
+In current folder run `python md2mb.py [maildir_path] [mbox_path_and_filename]`
+
+_Sample:_
+`python md2mb.py /var/qmail/<domain_name>/<user>/Mailbox /home/domina_converted_file`
 
 After completing the conversion process you can import it into your favorite program.
+
+---
+
+***Mail box / QMAIL folder structure***
+
+```text
+<Domain>
+    |-<Username>
+        |-@attachments
+        |-Maildir
+            |-.Spam
+            |-...
+            |-cur
+            |-tmp
+            |-new
+            |-...
+            
+```
+
+---
 
 ## Credits
 > [!IMPORTANT]
