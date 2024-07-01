@@ -83,28 +83,25 @@ def maildir2mailbox(mailboxPath, mboxPathAndFilename):
     try:
         for msg in maildir:
             try:
-                msg_as_string = msg.as_string(policy=policy.SMTPUTF8)
-                mbox.add(msg_as_string)
-            
-            except UnicodeEncodeError:
-                msg_as_bytes = msg.as_bytes(policy=policy.SMTPUTF8)
-                mbox.add(msg_as_bytes)  
-                print("UnicodeEncodeError: Message added as bytes. ")
-                print(msg)
-                print("------- skip email")
-                continue
-            
-            except ValueError as e:
-                print("ValueError: ", e)
-                print("------- skip email")
-
-                if "String input must be ASCII-only" in str(e):
-                    msg_as_bytes = msg.as_bytes(policy=policy.SMTPUTF8)
-                    mbox.add(msg_as_bytes)  # Corregido para añadir msg_as_bytes en lugar de msg_as_string
-                else: 
+                mbox.add(msg)
+                '''
+                except UnicodeEncodeError as e:
+                    print(f"Error message: Unicode")
                     print(f"Error message: {e}")
-                    print("------- skip email")
+                    print(f"Error message: {msg}")
+                    print("----")
                     continue
+                except ValueError as e:
+                    if "ASCII-only" in str(e):
+                        msg_as_bytes = msg.as_bytes(policy=policy.SMTPUTF8)
+                        mbox.add(msg_as_bytes)  # Corregido para añadir msg_as_bytes en lugar de msg_as_string
+                    else: 
+                        continue
+                '''
+            except:
+                print('     | 1 - Skipped for wrong encoding')
+                continue
+
             
     except FileNotFoundError as e:
         print(f"Error message: {e}")
